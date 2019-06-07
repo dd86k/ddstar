@@ -1,0 +1,21 @@
+# DUB
+.dub
+__dummy.html
+docs.json
+docs/
+/ddstar
+ddstar.so
+ddstar.dylib
+ddstar.dll
+ddstar.a
+ddstar.lib
+ddstar-test-*
+*.exe
+*.o
+*.obj
+*.lst
+*.dll
+dub.selections.json
+
+# Personal
+NOTES

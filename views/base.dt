@@ -1,0 +1,6 @@
+doctype html
+html
+	head
+		title ddstar
+		link(rel="stylesheet", href="css/ddstar.css")
+		link(rel="icon", type="image/png", href="favicon.png")

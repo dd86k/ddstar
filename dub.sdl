@@ -1,0 +1,9 @@
+name "ddstar"
+description "Asterisk Web Management Platform"
+authors "dd86k"
+copyright "Copyright © 2019, dd86k"
+license "BSD 3-clause"
+
+versions "VibeDisableCommandLineParsing"
+
+dependency "vibe-d" version="~>0.8"

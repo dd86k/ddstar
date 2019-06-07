@@ -1,0 +1,47 @@
+@charset "utf-8";
+
+body {
+	margin: 0;
+}
+
+/* Nav bar */
+
+nav .logo {
+	font-family: monospace;
+	font-size: 1.3em;
+}
+nav a {
+	text-decoration: none;
+	border-bottom: 5px solid #22A;
+}
+nav a:hover {
+	border-bottom: 5px solid red;
+}
+nav a, nav .navfolder, nav .logo {
+	display: inline-block;
+	padding: 10px 15px 10px 15px;
+	color: white;
+}
+nav .navfolder {
+	cursor: pointer;
+}
+nav .navfolder:hover .submenu {
+	display: block;
+}
+nav .submenu {
+	display: none;
+	position: fixed;
+	background-color: #22A;
+}
+nav .submenu a {
+	display: block;
+}
+nav {
+	background-color: #22A;
+}
+
+/* Content */
+
+table {
+	width: 100%;
+}

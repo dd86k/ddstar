@@ -1,0 +1,10 @@
+nav
+	div.logo>
+		em ddstar
+	a(href="/") Home
+	a(href="/status") Status
+	div.navfolder> ?
+		div.submenu
+			a(href="/help") Help
+			a(href="/version") Version
+			a(href="/license") License

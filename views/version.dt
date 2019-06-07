@@ -1,0 +1,16 @@
+include base
+
+body
+
+include nav
+
+table
+	tr
+		td CPU Vendor
+		td= cpu_vendor
+	tr
+		td CPU Model
+		td= cpu_model
+	tr
+		td AMI Version
+		td= agent
