@@ -1,7 +1,7 @@
 nav
 	div.logo>
 		em ddstar
-	a(href="/") Home
+	a(href="/") Dashboard
 	a(href="/status") Status
 	div.navfolder> ?
 		div.submenu

@@ -15,17 +15,25 @@ enum VERSION_STRING =
 	"  Using "~__VENDOR__~" v%u at "~__TIMESTAMP__~" ("~C_RUNTIME~")\n"~
 	"  vibe-core: "~vibeVersionString~"\n"~
 	"  openssl: "~OPENSSL_VERSION~"\n"~
-	"features:"~FEATURE_SIMD~
+	"features:"~
+	FEATURE_SIMD~
 	"\n";
 
 extern (C)
 void showhelp() {
 	puts(
-	"ddstar, an Asterisk Web management platform\n"~
+	"ddstar, an Asterisk Web Dashboard\n"~
 	"  Usage: ddstar [OPTIONS]\n\n"~
 	"OPTIONS\n"~
-	"	--port     HTTP listen port (default: 4272)"~
-	"	--amiport  AMI connection port (default: 5038)"
+	"	--port     HTTP listen port (default: 4272)\n"~
+	"	-A --amiport  AMI connection port (default: 5038)\n"~
+	"	--amiaddress  AMI connection port (default: localhost)\n"~
+	"	--user     Login username\n"~
+	"	--secret   Login secret\n"~
+	"\n"~
+	"	-h --help   Show help page and quit\n"~
+	"	--version   Show version page and quit\n"~
+	"	--license   Show license page and quit\n"
 	);
 	exit(0);
 }
@@ -86,11 +94,11 @@ int main(string[] args) {
 			"port", "HTTP listen port", &port,
 			// AMI settings
 			config.caseSensitive,
-			"A|amiport", "AMI connection port (default: 5038)", &amiport,
+			"A|amiport", "AMI port (default: 5038)", &amiport,
 			config.caseSensitive,
-			"amiaddress", "AMI connection address (default: localhost)", &amiadd,
+			"amiaddress", "AMI address (default: localhost)", &amiadd,
 			config.caseSensitive,
-			"user", "AMI user to connect with", &amiuser,
+			"user", "AMI username", &amiuser,
 			config.caseSensitive,
 			"secret", "AMI user secret", &amisecret,
 			// Informal
@@ -130,6 +138,7 @@ int main(string[] args) {
 		return 4;
 	}
 	ami_corestatus;
+	ami_coresettings;
 
 	//
 	// Routing
@@ -141,8 +150,8 @@ int main(string[] args) {
 		.get("/status", staticTemplate!"status.dt")
 	//	.get("/admin", staticTemplate!"admin.dt")
 		.get("/help", staticTemplate!"help.dt")
-	//	.get("/version", staticTemplate!"version.dt")
 		.get("/license", staticTemplate!"license.dt")
+		// /version
 		.registerWebInterface(new MainPages)
 		.get("/*", serveStaticFiles("pub"))
 		.get("/ws", handleWebSockets(&handleWSv0)) // api
@@ -157,7 +166,7 @@ int main(string[] args) {
 		listenHTTP(htsettings, router);
 	} catch (Exception e) {
 		logError(e.msg);
-		return 2;
+		return 6;
 	}
 
 	return runApplication;

@@ -4,13 +4,32 @@ body
 
 include nav
 
-table
-	tr
-		td CPU Vendor
-		td= cpu_vendor
-	tr
-		td CPU Model
-		td= cpu_model
-	tr
-		td AMI Version
-		td= agent
+div#main
+	table
+		tr
+			td ddstar Version
+			td= app_version
+		tr
+			td API Version
+			td= api_version
+		tr
+			td Asterisk Version
+			td= asteriskver
+		tr
+			td AMI version
+			td= amiver
+		tr
+			td Agent
+			td= agent
+		tr
+			td Vibe Core Version
+			td= vibe_ver
+		tr
+			td OpenSSL Version
+			td= openssl_ver
+		tr
+			td CPU Vendor
+			td= cpu_vendor
+		tr
+			td CPU Model
+			td= cpu_model

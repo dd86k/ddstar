@@ -8,21 +8,30 @@ module core.ami;
 
 import std.format;
 import std.socket;
-import std.string : indexOf;
+import std.string : indexOf, lineSplitter;
 import std.array : split;
 import std.algorithm.iteration : splitter;
+import std.algorithm.searching;
 import vibe.vibe;
 
 /// Newline string, default being ala HTTP (\r\n)
 enum NL = "\r\n";
 
-/// AMI useragent string and version
-__gshared string userAgent = void;
+/// Asterisk fields
+struct AstFields_t {
+	string asterisk_version;
+	string agent;
+	string ami_version;
+	int current_calls;
+}
+
+/// AMI fields
+__gshared AstFields_t AMIInfo = void;;
 
 /**
  * Connect to AMI using a port and optional address. If no address is provided,
  * it will attempt to connect to localhost (either via IPv4 (127.0.0.1) or IPv6
- * (::1)). Default port from make samples is 5038, which is not taken by
+ * (::1)). While default port from "make samples" is 5038, it is not taken by
  * default.
  * Params:
  *   port = AMI port
@@ -50,6 +59,8 @@ int ami_init(ushort port, string address) {
 		return 3;
 	}
 
+	AMIInfo.ami_version = "unknown";
+
 	return 0;
 }
 
@@ -68,27 +79,27 @@ int ami_init(ushort port, string address) {
  */
 int ami_login(string user, string secret) {
 	import std.string : strip;
-	
-	ubyte [256]b = void;
-	amisock.send(format(
+
+	enum fmt =
 		"Action: Login"~NL~
 		"Username: %s"~NL~
-		"Secret: %s"~NL~
-		NL,
-		user, secret
-	));
-	size_t l = amisock.receive(b);
+		"Secret: %s"~NL~NL;
+
+	char [128]a = void;
+
+	amisock.send(a.sformat!fmt(user, secret));
+	size_t l = amisock.receive(a);
 
 	// user agent
 
-	userAgent = (cast(char[])b[0..l]).strip.dup;
-	logInfo("[AMI_LOGIN] %s", userAgent);
+	AMIInfo.agent = (cast(string)a[0..l]).strip.dup;
+	logInfo("[AMI_AGENT] %s", AMIInfo.agent);
 
 	// login confirmation
 
 	AMIMessage m = void;
-	l = amisock.receive(b);
-	string s = cast(string)b[0..l];
+	l = amisock.receive(a);
+	string s = cast(string)a[0..l];
 	ami_msgtype(s, m);
 	if (m.sub != "Success")
 		return 1;
@@ -98,13 +109,21 @@ int ami_login(string user, string secret) {
 }
 
 void ami_corestatus() {
+	ami_last = LastAction.CoreStatus;
 	amisock.send("Action: CoreStatus"~NL~NL);
 }
 void ami_coresettings() {
+	ami_last = LastAction.CoreSettings;
 	amisock.send("Action: CoreSettings"~NL~NL);
 }
 
 private:
+
+enum LastAction {
+	Undefined,
+	CoreStatus,
+	CoreSettings,
+}
 
 struct AMIMessage {
 	string type; /// message type: "Event", "Response"
@@ -112,12 +131,14 @@ struct AMIMessage {
 }
 
 __gshared TcpSocket amisock = void;
+__gshared LastAction ami_last = void;
+__gshared string unknown = "unknown"; /// Set when key is not defined
 
 /// Event/Response loop handler
 /// Also sends data through websocket
 void ami_idle() {
 	size_t l = void;
-	ubyte [1024] b = void;
+	ubyte [1024]b = void;
 	AMIMessage m = void;
 
 AMI_START:
@@ -130,8 +151,17 @@ AMI_START:
 	string[string] r = ami_msgtype(s, m);
 
 	switch (m.type) {
-	case "Response":
-	
+	case "Response:":
+		switch (ami_last) {
+		case LastAction.CoreSettings:
+			AMIInfo.asterisk_version = getval(r, "AsteriskVersion");
+			AMIInfo.ami_version = getval(r, "AMIversion");
+			break;
+		case LastAction.CoreStatus:
+		
+			break;
+		default:
+		}
 		break;
 	case "Event":
 		switch (m.sub) {
@@ -147,37 +177,26 @@ AMI_START:
 	goto AMI_START;
 }
 
-string[string] ami_msgtype(ref string s, ref AMIMessage m) {
-	string[] su = s.split("\r\n");
+string getval(ref string[string] r, string key) {
+	// while DMD works without .idup, other compilers like ldc needs it
+	return key in r ? r[key].idup : unknown;
+}
 
-	size_t sl = su.length; /// array length
-	if (sl == 0)
-		return null;
-
-	string[] ss = su[0].split(": ");
-	size_t ssl = ss.length; /// sub array length
-	if (ssl < 2)
-		return null;
-
-	m.type = ss[0];
-	m.sub = ss[1];
-
+string[string] ami_msgtype(ref string instr, ref AMIMessage msg) {
 	string[string] r;
-	foreach (l; su[1..$]) {
-		ss = l.split(": ");
-		ssl = ss.length;
+	bool f = false; /// first line done
 
-		if (ssl >= 2)
-			r[ss[0]] = ss[1];
+	const lines = instr.lineSplitter; // LineSplitter!(cast(Flag)false, string)
+	foreach (line; lines) {
+		const m = line.findSplit(": ");
+		if (f) {
+			r[m[0]] = m[2];
+		} else {
+			msg.type = m[0];
+			msg.sub = m[2];
+			f = true;
+		}
 	}
 
 	return r;
-}
-
-void ami_event(ref string s) { // get event
-	
-}
-
-void ami_response(ref string s) { // get event
-	
 }

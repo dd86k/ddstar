@@ -16,10 +16,12 @@ platforms.
 
 **NOTE:** This project is currently NOT production-ready.
 
+TODO: Insert screenshots
+
 # Compiler Support
 
 | Compiler | Description |
 |---|---|
 | DMD | Lowest optimizations. Most compatible, recommended. |
 | LDC | Highest optimizations. May be a little buggy. |
-| GDC | Medium optimizations. Untested, may buggy. |
+| GDC | Medium optimizations. Untested, may be very buggy. |

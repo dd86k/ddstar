@@ -7,3 +7,9 @@ license "BSD 3-clause"
 versions "VibeDisableCommandLineParsing"
 
 dependency "vibe-d" version="~>0.8"
+
+buildType "check" {
+	buildOptions "syntaxOnly"
+	dflags "-c" "-vgc" "-vtls" platform="dmd"
+	dflags "-c" "-vgc" platform="ldc"
+}
