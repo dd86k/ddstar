@@ -186,7 +186,7 @@ string[string] ami_msgtype(ref string instr, ref AMIMessage msg) {
 	string[string] r;
 	bool f = false; /// first line done
 
-	const lines = instr.lineSplitter; // LineSplitter!(cast(Flag)false, string)
+	auto lines = instr.lineSplitter; // LineSplitter!(cast(Flag)false, string)
 	foreach (line; lines) {
 		const m = line.findSplit(": ");
 		if (f) {
