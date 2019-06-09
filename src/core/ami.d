@@ -92,7 +92,7 @@ int ami_login(string user, string secret) {
 
 	// user agent
 
-	AMIInfo.agent = (cast(string)a[0..l]).strip.dup;
+	AMIInfo.agent = (cast(string)a[0..l]).strip.idup;
 	logInfo("[AMI_AGENT] %s", AMIInfo.agent);
 
 	// login confirmation
@@ -134,8 +134,9 @@ __gshared TcpSocket amisock = void;
 __gshared LastAction ami_last = void;
 __gshared string unknown = "unknown"; /// Set when key is not defined
 
-/// Event/Response loop handler
-/// Also sends data through websocket
+/// Event/Response loop handler, abusing ranges since now
+/// This function only has an AA that allocates, otherwise uses non-gc functions
+/// Also sends data to corresponding API endpoints depending on the event
 void ami_idle() {
 	size_t l = void;
 	ubyte [1024]b = void;
@@ -143,60 +144,77 @@ void ami_idle() {
 
 AMI_START:
 	l = amisock.receive(b);
+	if (l == 0) goto AMI_START;
+
 	string s = cast(string)b[0..l];
 
-	debug if (l)
-		logInfo("[AMI_DEBUG] %s", s);
+	// in case of multiple messages in one packet/receive operation
+	foreach (msg; s.splitter("\r\n\r\n")) {
+		if (msg == null) break;
 
-	string[string] r = ami_msgtype(s, m);
+		string[string] r;
+		ami_msgtype(msg, m);
+		ami_msgbody(msg, r);
 
-	switch (m.type) {
-	case "Response:":
-		switch (ami_last) {
-		case LastAction.CoreSettings:
-			AMIInfo.asterisk_version = getval(r, "AsteriskVersion");
-			AMIInfo.ami_version = getval(r, "AMIversion");
+		debug logInfo("[AMI_DEBUG] msg: %s", msg);
+		//debug logInfo("[AMI_DEBUG] s: %s", s);
+		//debug logInfo("[AMI_DEBUG] m: %s", m);
+		//debug logInfo("[AMI_DEBUG] r: %s", r);
+
+		switch (m.type) {
+		case "Response":
+			switch (ami_last) {
+			case LastAction.CoreSettings:
+				AMIInfo.asterisk_version = r.istr("AsteriskVersion");
+				AMIInfo.ami_version = r.istr("AMIversion");
+				break;
+			case LastAction.CoreStatus:
+			
+				break;
+			default:
+			}
 			break;
-		case LastAction.CoreStatus:
-		
+		case "Event":
+			switch (m.sub) {
+			case "Reload":
+			
+				break;
+			default:
+			}
 			break;
 		default:
 		}
-		break;
-	case "Event":
-		switch (m.sub) {
-		case "Reload":
-		
-			break;
-		default:
-		}
-		break;
-	default:
 	}
 
 	goto AMI_START;
 }
 
-string getval(ref string[string] r, string key) {
+string istr(ref string[string] r, string key) {
 	// while DMD works without .idup, other compilers like ldc needs it
 	return key in r ? r[key].idup : unknown;
 }
 
-string[string] ami_msgtype(ref string instr, ref AMIMessage msg) {
-	string[string] r;
-	bool f = false; /// first line done
+void ami_msgtype(ref string instr, ref AMIMessage s) {
+	// cheap, but works
+	const a = instr.findSplit("\r\n");
+	const m = a[0].findSplit(": ");
+	s.type = m[0];
+	s.sub = m[2];
+}
+
+void ami_msgbody(ref string instr, ref string[string] r) {
+	bool f = true; /// Skip first line
 
 	auto lines = instr.lineSplitter; // LineSplitter!(cast(Flag)false, string)
 	foreach (line; lines) {
-		const m = line.findSplit(": ");
+		// Skip first line to avoid allocating for nothing since we already have
+		// event/response type, ranges can't be put on Result and .array
+		// allocates/GC
 		if (f) {
-			r[m[0]] = m[2];
-		} else {
-			msg.type = m[0];
-			msg.sub = m[2];
-			f = true;
+			f = false;
+			continue;
 		}
+		const m = line.findSplit(": ");
+		if (m) r[m[0]] = m[2];
 	}
-
-	return r;
 }
